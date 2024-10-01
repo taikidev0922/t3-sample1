@@ -1,18 +1,47 @@
 "use client";
 
+import React from "react";
 import "@mescius/wijmo.styles/wijmo.css";
-import * as WjGrid from "@mescius/wijmo.react.grid";
+import { FlexGrid as WjFlexGrid } from "@mescius/wijmo.react.grid";
+import { FlexGrid as IFlexGrid } from "@mescius/wijmo.grid";
 import { FlexGridFilter } from "@mescius/wijmo.react.grid.filter";
 import "@mescius/wijmo.cultures/wijmo.culture.ja";
+import { Plus } from "lucide-react";
 
-export function FlexGrid<T>({ items }: { items: T[] }) {
+interface FlexGridProps<T> {
+  items: T[];
+  columns: { header: string; binding: string; width?: number }[];
+  init: (grid: IFlexGrid) => void;
+  addRow: () => void;
+}
+
+export function FlexGrid<T>({
+  items,
+  columns,
+  init,
+  addRow,
+}: FlexGridProps<T>) {
+  const onInitialized = (s: IFlexGrid) => {
+    init(s);
+  };
+
   return (
     <div>
-      <WjGrid.FlexGrid itemsSource={items}>
+      <WjFlexGrid
+        itemsSource={items}
+        columns={columns}
+        initialized={onInitialized}
+        style={{ height: "500px" }}
+      >
         <FlexGridFilter />
-        <WjGrid.FlexGridColumn header="code" binding="code" width={110} />
-        <WjGrid.FlexGridColumn header="顧客名" binding="name" width={110} />
-      </WjGrid.FlexGrid>
+      </WjFlexGrid>
+      <button
+        onClick={() => {
+          addRow();
+        }}
+      >
+        <Plus size={24} />
+      </button>
     </div>
   );
 }
