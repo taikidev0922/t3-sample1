@@ -18,3 +18,17 @@ model Post {
 
     @@index([name])
 }
+
+model Customer {
+    id           Int      @id @default(autoincrement())
+    code         String   @unique
+    name         String
+    address      String?
+    phoneNumber  String?
+    emailAddress String?
+    createdAt    DateTime @default(now())
+    updatedAt    DateTime @updatedAt
+
+    @@index([code])
+    @@index([name])
+}
