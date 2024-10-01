@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { FlexGrid as IFlexGrid } from "@mescius/wijmo.grid";
 
-type FlexGridColumn = {
+type FlexGridColumn<T> = {
   header: string;
   binding: string;
 };
 
-export function useFlexGrid<T>(columns: FlexGridColumn[]) {
+export function useFlexGrid<T>(columns: FlexGridColumn<T>[]) {
   const [grid, setGrid] = useState<IFlexGrid>();
 
   function init(_grid: IFlexGrid) {

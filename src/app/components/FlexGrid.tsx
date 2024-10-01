@@ -8,9 +8,9 @@ import { FlexGridFilter } from "@mescius/wijmo.react.grid.filter";
 import "@mescius/wijmo.cultures/wijmo.culture.ja";
 import { Plus } from "lucide-react";
 
-interface FlexGridProps<T> {
+export interface FlexGridProps<T> {
   items: T[];
-  columns: { header: string; binding: string; width?: number }[];
+  columns: { header: string; binding: string }[];
   init: (grid: IFlexGrid) => void;
   addRow: () => void;
 }

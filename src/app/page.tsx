@@ -1,11 +1,12 @@
 "use client";
 import dynamic from "next/dynamic";
-import { useState, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { api } from "~/trpc/react";
 import { useFlexGrid } from "./hooks/useFlexGrid";
 import { Button } from "~/app/components/ui/button";
 import { Input } from "~/app/components/ui/input";
 import { Label } from "~/app/components/ui/label";
+import { toast, Toaster } from "react-hot-toast";
 import {
   Accordion,
   AccordionContent,
@@ -58,44 +59,30 @@ export default function Home() {
   const [searchCriteria, setSearchCriteria] = useState<SearchCriteria>(
     initialSearchCriteria,
   );
-  const [searchParams, setSearchParams] = useState<SearchCriteria>(
-    initialSearchCriteria,
-  );
-  const [message, setMessage] = useState("");
+  const [submittedSearchCriteria, setSubmittedSearchCriteria] =
+    useState<SearchCriteria>(initialSearchCriteria);
   const [openSections, setOpenSections] = useState<string[]>([
     "search",
     "customerList",
   ]);
+  const [searchKey, setSearchKey] = useState<number>(0);
 
   const {
     data: customers,
     isLoading,
     isError,
     error,
-    refetch,
-  } = api.customer.findAll.useQuery(searchParams, {
-    enabled: Object.values(searchParams).some((value) => value !== ""),
+  } = api.customer.findAll.useQuery(submittedSearchCriteria, {
+    enabled: searchKey > 0,
   });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        await refetch();
-      } catch (error) {
-        console.error("Error refetching data:", error);
-      }
-    };
-
-    void fetchData();
-  }, [searchParams, refetch]);
-
   const bulkUpsertMutation = api.customer.bulkUpsert.useMutation({
-    onSuccess: async () => {
-      setMessage("一括登録が成功しました。");
-      await refetch();
+    onSuccess: () => {
+      toast.success("一括登録が成功しました。");
+      setSearchKey((prev) => prev + 1);
     },
     onError: (error) => {
-      setMessage(`エラーが発生しました: ${error.message}`);
+      toast.error(`エラーが発生しました: ${error.message}`);
     },
   });
 
@@ -109,41 +96,45 @@ export default function Home() {
 
   const { register, getSelectedItems } = useFlexGrid(columns);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setSearchCriteria((prev) => ({ ...prev, [name]: value }));
-  };
+  const handleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const { name, value } = e.target;
+      setSearchCriteria((prev) => ({ ...prev, [name]: value }));
+    },
+    [],
+  );
 
-  const handleSearch = () => {
-    setSearchParams(searchCriteria);
+  const handleSearch = useCallback(() => {
+    setSubmittedSearchCriteria(searchCriteria);
+    setSearchKey((prev) => prev + 1);
     if (!openSections.includes("customerList")) {
-      setOpenSections([...openSections, "customerList"]);
+      setOpenSections((prev) => [...prev, "customerList"]);
     }
-  };
+  }, [searchCriteria, openSections]);
 
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     setSearchCriteria(initialSearchCriteria);
-    setSearchParams(initialSearchCriteria);
-  };
+    setSubmittedSearchCriteria(initialSearchCriteria);
+    setSearchKey(0);
+  }, []);
 
-  const handleBulkUpsert = () => {
-    if (getSelectedItems) {
-      const updatedCustomers = getSelectedItems()?.map((item: Customer) => ({
+  const handleBulkUpsert = useCallback(() => {
+    const selectedItems = getSelectedItems?.();
+    if (selectedItems) {
+      const updatedCustomers = selectedItems.map((item: Customer) => ({
         ...item,
         id: item.id ? String(item.id) : undefined,
         address: item.address ?? null,
         phoneNumber: item.phoneNumber ?? null,
         emailAddress: item.emailAddress ?? null,
       }));
-      if (!updatedCustomers) {
-        return;
-      }
       bulkUpsertMutation.mutate(updatedCustomers);
     }
-  };
+  }, [getSelectedItems, bulkUpsertMutation]);
 
   return (
     <div className="container mx-auto p-4">
+      <Toaster position="top-center" />
       <Accordion
         type="multiple"
         value={openSections}
@@ -152,7 +143,7 @@ export default function Home() {
         <AccordionItem value="search">
           <AccordionTrigger>顧客検索</AccordionTrigger>
           <AccordionContent>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-6">
               {searchFields.map((field) => (
                 <div key={field.key} className="space-y-2">
                   <Label htmlFor={field.key}>{field.label}</Label>
@@ -162,12 +153,11 @@ export default function Home() {
                     name={field.key}
                     value={searchCriteria[field.key as keyof SearchCriteria]}
                     onChange={handleInputChange}
-                    placeholder={`${field.label}で検索`}
                   />
                 </div>
               ))}
             </div>
-            <div className="mt-4 space-x-2">
+            <div className="mt-4 flex justify-end space-x-2">
               <Button onClick={handleSearch} disabled={isLoading}>
                 {isLoading ? "検索中..." : "検索"}
               </Button>
@@ -196,7 +186,7 @@ export default function Home() {
                 該当する顧客が見つかりません。
               </div>
             )}
-            <div className="mt-4">
+            <div className="mt-4 flex justify-end">
               <Button
                 onClick={handleBulkUpsert}
                 disabled={
@@ -211,8 +201,6 @@ export default function Home() {
           </AccordionContent>
         </AccordionItem>
       </Accordion>
-
-      {message && <div className="mt-4 text-center">{message}</div>}
     </div>
   );
 }
