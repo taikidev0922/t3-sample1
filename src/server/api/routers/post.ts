@@ -25,7 +25,6 @@ export const postRouter = createTRPCRouter({
     const post = await ctx.db.post.findFirst({
       orderBy: { createdAt: "desc" },
     });
-
     return post ?? null;
   }),
 });

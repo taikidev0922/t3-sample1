@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useRef, useEffect, useState } from "react";
 import "@mescius/wijmo.styles/wijmo.css";
 import { FlexGrid as WjFlexGrid } from "@mescius/wijmo.react.grid";
 import { FlexGrid as IFlexGrid } from "@mescius/wijmo.grid";
@@ -21,25 +21,67 @@ export function FlexGrid<T>({
   init,
   addRow,
 }: FlexGridProps<T>) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [gridHeight, setGridHeight] = useState<number>(500);
+
   const onInitialized = (s: IFlexGrid) => {
     init(s);
   };
 
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const updateGridHeight = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        const newHeight = viewportHeight - rect.top - 100; // 20pxの余白を確保
+        setGridHeight(Math.max(newHeight, 200)); // 最小高さを200pxに設定
+      }
+    };
+
+    // 初回実行
+    updateGridHeight();
+
+    // ウィンドウリサイズイベントのリスナー
+    window.addEventListener("resize", updateGridHeight);
+
+    // MutationObserverの追加
+    const observer = new MutationObserver((mutations) => {
+      let shouldUpdate = false;
+      mutations.forEach((mutation) => {
+        if (mutation.type === "attributes" || mutation.type === "childList") {
+          shouldUpdate = true;
+        }
+      });
+      if (shouldUpdate) {
+        updateGridHeight();
+      }
+    });
+
+    observer.observe(document.body, {
+      attributes: true,
+      childList: true,
+      subtree: true,
+    });
+
+    return () => {
+      window.removeEventListener("resize", updateGridHeight);
+      observer.disconnect();
+    };
+  }, []);
+
   return (
-    <div>
+    <div ref={containerRef}>
       <WjFlexGrid
         itemsSource={items}
         columns={columns}
         initialized={onInitialized}
-        style={{ height: "500px" }}
+        style={{ height: `${gridHeight}px` }}
       >
         <FlexGridFilter />
       </WjFlexGrid>
-      <button
-        onClick={() => {
-          addRow();
-        }}
-      >
+      <button onClick={addRow} style={{ marginTop: "10px" }}>
         <Plus size={24} />
       </button>
     </div>
