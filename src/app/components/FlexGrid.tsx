@@ -5,7 +5,7 @@ import * as WjGrid from "@mescius/wijmo.react.grid";
 import { FlexGridFilter } from "@mescius/wijmo.react.grid.filter";
 import "@mescius/wijmo.cultures/wijmo.culture.ja";
 
-const FlexGrid = ({ items }: { items: any[] }) => {
+export function FlexGrid<T>({ items }: { items: T[] }) {
   return (
     <div>
       <WjGrid.FlexGrid itemsSource={items}>
@@ -15,6 +15,4 @@ const FlexGrid = ({ items }: { items: any[] }) => {
       </WjGrid.FlexGrid>
     </div>
   );
-};
-
-export { FlexGrid };
+}
