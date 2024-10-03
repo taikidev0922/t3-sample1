@@ -7,37 +7,20 @@ const customerSchema = z.object({
   id: z.string().optional(), // idは文字列またはundefined
   code: z.string(),
   name: z.string(),
-  address: z.string().nullable().optional(), // nullableとoptionalを追加
+  address: z.string().nullable().optional(),
   phoneNumber: z.string().nullable().optional(),
   emailAddress: z.string().email().nullable().optional(),
+  isDelete: z.boolean().optional(), // 削除フラグを追加
 });
 
 export const customerRouter = createTRPCRouter({
-  findAll: publicProcedure
-    .input(
-      z
-        .object({
-          name: z.string().optional(),
-          code: z.string().optional(),
-          address: z.string().optional(),
-          phoneNumber: z.string().optional(),
-          emailAddress: z.string().optional(),
-        })
-        .optional(),
-    )
-    .query(async ({ ctx, input }) => {
-      const where = {
-        ...(input?.name ? { name: { contains: input.name } } : {}),
-        ...(input?.code ? { code: { contains: input.code } } : {}),
-      };
+  findAll: publicProcedure.query(async ({ ctx }) => {
+    const customers = await ctx.db.customer.findMany({
+      orderBy: { createdAt: "desc" },
+    });
 
-      const customers = await ctx.db.customer.findMany({
-        where,
-        orderBy: { createdAt: "desc" },
-      });
-
-      return customers || [];
-    }),
+    return customers;
+  }),
 
   bulkUpsert: publicProcedure
     .input(z.array(customerSchema))
@@ -48,17 +31,24 @@ export const customerRouter = createTRPCRouter({
           const upsertedCustomers = await Promise.all(
             input.map(async (customer) => {
               if (customer.id) {
-                // 更新操作
-                return prisma.customer.update({
-                  where: { id: Number(customer.id) },
-                  data: {
-                    code: customer.code,
-                    name: customer.name,
-                    address: customer.address,
-                    phoneNumber: customer.phoneNumber,
-                    emailAddress: customer.emailAddress,
-                  },
-                });
+                if (customer.isDelete) {
+                  // 削除操作
+                  return prisma.customer.delete({
+                    where: { id: Number(customer.id) },
+                  });
+                } else {
+                  // 更新操作
+                  return prisma.customer.update({
+                    where: { id: Number(customer.id) },
+                    data: {
+                      code: customer.code,
+                      name: customer.name,
+                      address: customer.address,
+                      phoneNumber: customer.phoneNumber,
+                      emailAddress: customer.emailAddress,
+                    },
+                  });
+                }
               } else {
                 // 新規作成操作
                 return prisma.customer.create({
@@ -82,7 +72,7 @@ export const customerRouter = createTRPCRouter({
         console.error("Bulk upsert error:", error);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "得意先の一括登録・更新中にエラーが発生しました。",
+          message: "得意先の一括登録・更新・削除中にエラーが発生しました。",
         });
       }
     }),

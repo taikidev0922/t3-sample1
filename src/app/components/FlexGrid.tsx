@@ -4,15 +4,18 @@ import React, { useRef, useEffect, useState } from "react";
 import "@mescius/wijmo.styles/wijmo.css";
 import { FlexGrid as WjFlexGrid } from "@mescius/wijmo.react.grid";
 import { FlexGrid as IFlexGrid } from "@mescius/wijmo.grid";
+import { CollectionView } from "@mescius/wijmo";
 import { FlexGridFilter } from "@mescius/wijmo.react.grid.filter";
 import "@mescius/wijmo.cultures/wijmo.culture.ja";
-import { Plus } from "lucide-react";
+import { Plus, Minus, Trash } from "lucide-react";
+import { FlexGridColumn } from "../types/FlexGridColumn";
 
 export interface FlexGridProps<T> {
   items: T[];
-  columns: { header: string; binding: string }[];
+  columns: FlexGridColumn[];
   init: (grid: IFlexGrid) => void;
   addRow: () => void;
+  removeRow: () => void;
 }
 
 export function FlexGrid<T>({
@@ -20,10 +23,10 @@ export function FlexGrid<T>({
   columns,
   init,
   addRow,
+  removeRow,
 }: FlexGridProps<T>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [gridHeight, setGridHeight] = useState<number>(500);
-
   const onInitialized = (s: IFlexGrid) => {
     init(s);
   };
@@ -71,11 +74,27 @@ export function FlexGrid<T>({
     };
   }, []);
 
+  const view = new CollectionView(items, {
+    refreshOnEdit: false,
+    trackChanges: true,
+  });
+
+  const rowHeaders: FlexGridColumn[] = [
+    {
+      header: " ",
+      binding: "operation",
+      cssClass: "wj-header",
+      width: 40,
+    },
+  ];
+
+  const extendedColumns = rowHeaders.concat(columns);
+
   return (
     <div ref={containerRef}>
       <WjFlexGrid
-        itemsSource={items}
-        columns={columns}
+        itemsSource={view}
+        columns={extendedColumns}
         initialized={onInitialized}
         style={{ height: `${gridHeight}px` }}
       >
@@ -83,6 +102,9 @@ export function FlexGrid<T>({
       </WjFlexGrid>
       <button onClick={addRow} style={{ marginTop: "10px" }}>
         <Plus size={24} />
+      </button>
+      <button onClick={removeRow} style={{ marginTop: "10px" }}>
+        <Minus size={24} />
       </button>
     </div>
   );
