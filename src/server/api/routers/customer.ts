@@ -16,7 +16,7 @@ const customerSchema = z.object({
 export const customerRouter = createTRPCRouter({
   findAll: publicProcedure.query(async ({ ctx }) => {
     const customers = await ctx.db.customer.findMany({
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: "asc" },
     });
 
     return customers;

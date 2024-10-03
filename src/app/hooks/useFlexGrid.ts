@@ -6,6 +6,9 @@ import {
 } from "@mescius/wijmo.grid";
 import { type CollectionView } from "@mescius/wijmo";
 import { Selector } from "@mescius/wijmo.grid.selector";
+import { UndoStack } from "@mescius/wijmo.undo";
+import { FlexGridFilter } from "@mescius/wijmo.grid.filter";
+import { FlexGridXlsxConverter } from "@mescius/wijmo.grid.xlsx";
 
 type FlexGridColumn<T> = {
   header: string;
@@ -16,10 +19,18 @@ export function useFlexGrid<T>(columns: FlexGridColumn<T>[]) {
   const [grid, setGrid] =
     useState<IFlexGrid<T & { id?: string; isDelete?: boolean }>>();
   const [selector, setSelector] = useState<Selector>();
+  const [filter, setFilter] = useState<FlexGridFilter>();
+  const [undoStack, setUndoStack] = useState<UndoStack>();
 
   function init(_grid: IFlexGrid<T & { id?: string; isDelete?: boolean }>) {
     setGrid(_grid);
     setSelector(new Selector(_grid));
+    setFilter(new FlexGridFilter(_grid));
+    setUndoStack(
+      new UndoStack("#undoable-form", {
+        maxActions: 50,
+      }),
+    );
     _grid.keyActionTab = KeyAction.Cycle;
     _grid.formatItem.addHandler(
       (s: IFlexGrid<T & { id?: string; isDelete?: boolean }>, e) => {
@@ -98,8 +109,32 @@ export function useFlexGrid<T>(columns: FlexGridColumn<T>[]) {
     );
   }
 
+  function undo() {
+    undoStack?.undo();
+  }
+
+  function redo() {
+    undoStack?.redo();
+  }
+
   function addRow() {
     grid?.editableCollectionView.addNew();
+  }
+
+  function clearFilter() {
+    filter?.clear();
+  }
+
+  async function copyRow() {
+    const currentItem = grid?.collectionView.currentItem;
+    if (currentItem) {
+      (grid?.collectionView as CollectionView).addNew({
+        ...currentItem,
+        id: null,
+      });
+      grid.select(grid?.collectionView.items.length - 1, grid.selection.col);
+      grid.rows[grid.selection.row]!.isSelected = true;
+    }
   }
 
   function removeRow() {
@@ -116,12 +151,31 @@ export function useFlexGrid<T>(columns: FlexGridColumn<T>[]) {
     grid?.endUpdate();
   }
 
+  function exportXlsx() {
+    if (!grid) {
+      return;
+    }
+    FlexGridXlsxConverter.saveAsync(
+      grid,
+      {
+        includeColumnHeaders: true,
+        includeStyles: false,
+      },
+      "FlexGrid.xlsx",
+    );
+  }
+
   function register() {
     return {
       columns,
       init,
       addRow,
       removeRow,
+      undo,
+      redo,
+      clearFilter,
+      copyRow,
+      exportXlsx,
     };
   }
 

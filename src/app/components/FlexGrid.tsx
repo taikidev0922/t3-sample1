@@ -3,12 +3,12 @@
 import React, { useRef, useEffect, useState } from "react";
 import "@mescius/wijmo.styles/wijmo.css";
 import { FlexGrid as WjFlexGrid } from "@mescius/wijmo.react.grid";
-import { FlexGrid as IFlexGrid } from "@mescius/wijmo.grid";
+import { type FlexGrid as IFlexGrid } from "@mescius/wijmo.grid";
 import { CollectionView } from "@mescius/wijmo";
-import { FlexGridFilter } from "@mescius/wijmo.react.grid.filter";
 import "@mescius/wijmo.cultures/wijmo.culture.ja";
-import { Plus, Minus, Trash } from "lucide-react";
-import { FlexGridColumn } from "../types/FlexGridColumn";
+import { Plus, Minus, Undo2, Redo2, FilterX, Copy, FileX } from "lucide-react";
+import { type FlexGridColumn } from "../types/FlexGridColumn";
+import { Button } from "./ui/button";
 
 export interface FlexGridProps<T> {
   items: T[];
@@ -16,6 +16,11 @@ export interface FlexGridProps<T> {
   init: (grid: IFlexGrid) => void;
   addRow: () => void;
   removeRow: () => void;
+  undo: () => void;
+  redo: () => void;
+  clearFilter: () => void;
+  copyRow: () => void;
+  exportXlsx: () => void;
 }
 
 export function FlexGrid<T>({
@@ -24,6 +29,11 @@ export function FlexGrid<T>({
   init,
   addRow,
   removeRow,
+  undo,
+  redo,
+  clearFilter,
+  copyRow,
+  exportXlsx,
 }: FlexGridProps<T>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [gridHeight, setGridHeight] = useState<number>(500);
@@ -91,21 +101,36 @@ export function FlexGrid<T>({
   const extendedColumns = rowHeaders.concat(columns);
 
   return (
-    <div ref={containerRef}>
+    <div ref={containerRef} id="undoable-form">
       <WjFlexGrid
         itemsSource={view}
         columns={extendedColumns}
         initialized={onInitialized}
         style={{ height: `${gridHeight}px` }}
-      >
-        <FlexGridFilter />
-      </WjFlexGrid>
-      <button onClick={addRow} style={{ marginTop: "10px" }}>
-        <Plus size={24} />
-      </button>
-      <button onClick={removeRow} style={{ marginTop: "10px" }}>
-        <Minus size={24} />
-      </button>
+      ></WjFlexGrid>
+      <div className="flex gap-2">
+        <Button onClick={undo} variant="outline" size="icon">
+          <Undo2 size={24} />
+        </Button>
+        <Button onClick={redo} variant="outline" size="icon">
+          <Redo2 size={24} />
+        </Button>
+        <Button onClick={addRow} variant="outline" size="icon">
+          <Plus size={24} />
+        </Button>
+        <Button onClick={removeRow} variant="outline" size="icon">
+          <Minus size={24} />
+        </Button>
+        <Button onClick={clearFilter} variant="outline" size="icon">
+          <FilterX size={24} />
+        </Button>
+        <Button onClick={copyRow} variant="outline" size="icon">
+          <Copy size={24} />
+        </Button>
+        <Button onClick={exportXlsx} variant="outline" size="icon">
+          <FileX size={24} />
+        </Button>
+      </div>
     </div>
   );
 }
