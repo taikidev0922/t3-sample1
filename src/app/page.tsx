@@ -1,111 +1,161 @@
-"use client";
-import dynamic from "next/dynamic";
-import { useCallback } from "react";
-import { api } from "~/trpc/react";
-import { useFlexGrid } from "./hooks/useFlexGrid";
-import { Button } from "~/app/components/ui/button";
-import { toast, Toaster } from "react-hot-toast";
-import { LoadingWrapper } from "./components/wrapper/LoadingWrapper";
+import React from "react";
+import Link from "next/link";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "~/app/components/ui/card";
+import {
+  Users,
+  Package,
+  Settings,
+  FileText,
+  List,
+  BarChart2,
+  PieChart,
+  TrendingUp,
+} from "lucide-react";
 
-const FlexGrid = dynamic(
-  () => import("./components/FlexGrid").then((mod) => mod.FlexGrid),
-  {
-    ssr: false,
-    loading: () => <p>Loading...</p>,
-  },
+interface ClickableCardProps {
+  href: string;
+  title: string;
+  icon: React.ElementType;
+  value: string;
+  change: string;
+  className: string;
+}
+
+const ClickableCard = ({
+  href,
+  title,
+  icon: Icon,
+  value,
+  change,
+  className,
+}: ClickableCardProps) => (
+  <Link href={href} className="block">
+    <Card
+      className={`${className} transition-all duration-300 hover:-translate-y-1 hover:shadow-lg`}
+    >
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        <Icon className="h-4 w-4 text-muted-foreground" />
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">{value}</div>
+        <p className="text-xs text-muted-foreground">
+          {change} from last month
+        </p>
+      </CardContent>
+    </Card>
+  </Link>
 );
 
-interface Customer {
-  id?: string;
-  code: string;
-  name: string;
-  address?: string | null;
-  phoneNumber?: string | null;
-  emailAddress?: string | null;
-}
-
-export default function Home() {
-  const {
-    data: customers,
-    isLoading,
-    isError,
-    error,
-    isFetching,
-    refetch,
-  } = api.customer.findAll.useQuery(undefined, {
-    enabled: true, // 画面表示時に自動的にデータを取得
-    refetchOnWindowFocus: false,
-  });
-
-  const bulkUpsertMutation = api.customer.bulkUpsert.useMutation({
-    onSuccess: () => {
-      toast.success("一括登録が成功しました。");
-      void refetch();
-    },
-    onError: (error) => {
-      toast.error(`エラーが発生しました: ${error.message}`);
-    },
-  });
-
-  const columns = [
-    { header: "コード", binding: "code", isRequired: true },
-    { header: "名前", binding: "name", isRequired: true },
-    { header: "住所", binding: "address", isRequired: false },
-    { header: "電話番号", binding: "phoneNumber", isRequired: false },
-    { header: "メールアドレス", binding: "emailAddress", isRequired: false },
-  ];
-
-  const { register, getChanges, validate } = useFlexGrid(columns);
-
-  const handleReset = async () => {
-    await refetch();
-  };
-
-  const handleBulkUpsert = useCallback(() => {
-    if (!validate()) return;
-    const selectedItems = getChanges?.();
-    if (selectedItems) {
-      const updatedCustomers = selectedItems.map((item: Partial<Customer>) => ({
-        ...item,
-        id: item.id ? String(item.id) : undefined,
-        code: item.code ?? "",
-        name: item.name ?? "",
-      }));
-      bulkUpsertMutation.mutate(updatedCustomers);
-    }
-  }, [getChanges, bulkUpsertMutation, validate]);
-
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
-
-  if (isError) {
-    return <div>Error: {error.message}</div>;
-  }
-
+const Dashboard = () => {
   return (
-    <div className="container mx-auto p-4">
-      <div className="mt-4 flex justify-end">
-        <Button onClick={handleReset} disabled={isFetching}>
-          {isFetching ? "処理中..." : "リセット"}
-        </Button>
-        <Button
-          onClick={handleBulkUpsert}
-          disabled={
-            bulkUpsertMutation.isPending || !customers || customers.length === 0
-          }
-        >
-          {bulkUpsertMutation.isPending ? "処理中..." : "一括登録・更新"}
-        </Button>
+    <div className="min-h-[calc(100vh-4rem)] p-4">
+      <div className="mb-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <ClickableCard
+          href="/orders"
+          title="受注総数"
+          icon={TrendingUp}
+          value="1,234"
+          change="+20.1%"
+          className="bg-blue-50"
+        />
+        <ClickableCard
+          href="/customers"
+          title="得意先数"
+          icon={Users}
+          value="567"
+          change="+5.6%"
+          className="bg-green-50"
+        />
+        <ClickableCard
+          href="/products"
+          title="商品数"
+          icon={Package}
+          value="890"
+          change="+12.3%"
+          className="bg-yellow-50"
+        />
+        <ClickableCard
+          href="/settings"
+          title="システム設定"
+          icon={Settings}
+          value="23"
+          change="0%"
+          className="bg-purple-50"
+        />
       </div>
-      <Toaster position="top-center" />
-      <h1 className="mb-4 text-2xl font-bold">顧客一覧</h1>
-      <LoadingWrapper isLoading={isFetching || bulkUpsertMutation.isPending}>
-        <FlexGrid items={customers ?? []} {...register()} />
-      </LoadingWrapper>
-      {customers && customers.length === 0 && (
-        <div className="mt-4 text-center">顧客データが見つかりません。</div>
-      )}
+
+      <div className="mb-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Card className="col-span-2">
+          <CardHeader>
+            <CardTitle>売上推移</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-2">
+            <BarChart2 className="h-60 w-full text-blue-500" />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>商品カテゴリ別売上</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-2">
+            <PieChart className="h-60 w-full text-green-500" />
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Link href="/recent-orders" className="block">
+          <Card className="transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+            <CardHeader>
+              <CardTitle>最近の受注</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <List className="h-48 w-full text-gray-500" />
+            </CardContent>
+          </Card>
+        </Link>
+        <Card>
+          <CardHeader>
+            <CardTitle>クイックアクション</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4">
+              <Link href="/new-order" className="block">
+                <Card className="flex items-center justify-center bg-blue-100 p-3 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+                  <FileText className="mr-2 h-5 w-5 text-blue-500" />
+                  <span className="text-sm font-medium">新規受注伝票</span>
+                </Card>
+              </Link>
+              <Link href="/customers" className="block">
+                <Card className="flex items-center justify-center bg-green-100 p-3 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+                  <Users className="mr-2 h-5 w-5 text-green-500" />
+                  <span className="text-sm font-medium">得意先マスタ</span>
+                </Card>
+              </Link>
+              <Link href="/products" className="block">
+                <Card className="flex items-center justify-center bg-yellow-100 p-3 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+                  <Package className="mr-2 h-5 w-5 text-yellow-500" />
+                  <span className="text-sm font-medium">商品マスタ</span>
+                </Card>
+              </Link>
+              <Link href="/settings" className="block">
+                <Card className="flex items-center justify-center bg-purple-100 p-3 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+                  <Settings className="mr-2 h-5 w-5 text-purple-500" />
+                  <span className="text-sm font-medium">システム設定</span>
+                </Card>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
-}
+};
+
+export default Dashboard;

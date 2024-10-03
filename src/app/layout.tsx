@@ -1,9 +1,10 @@
 import "~/styles/globals.css";
-
 import { GeistSans } from "geist/font/sans";
 import { type Metadata } from "next";
-
 import { TRPCReactProvider } from "~/trpc/react";
+
+import { Button } from "~/app/components/ui/button";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Create T3 App",
@@ -11,13 +12,37 @@ export const metadata: Metadata = {
   icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
 
+const Navbar = () => {
+  return (
+    <nav className="bg-gray-800 p-4 text-white">
+      <div className="container mx-auto flex items-center justify-between">
+        <Link href="/" className="text-xl font-bold">
+          My App
+        </Link>
+        <div className="space-x-4">
+          <Button variant="ghost" asChild>
+            <Link href="/dashboard">Dashboard</Link>
+          </Button>
+          <Button variant="ghost" asChild>
+            <Link href="/profile">Profile</Link>
+          </Button>
+          <Button variant="secondary">Login</Button>
+        </div>
+      </div>
+    </nav>
+  );
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${GeistSans.variable}`}>
-      <body>
-        <TRPCReactProvider>{children}</TRPCReactProvider>
+    <html lang="en" className={`${GeistSans.variable} font-sans`}>
+      <body className="min-h-screen bg-gray-100">
+        <TRPCReactProvider>
+          <Navbar />
+          <main className="container mx-auto mt-4 px-2">{children}</main>
+        </TRPCReactProvider>
       </body>
     </html>
   );
