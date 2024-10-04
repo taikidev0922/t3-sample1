@@ -1,22 +1,15 @@
 "use client";
-import dynamic from "next/dynamic";
 import { useCallback } from "react";
 import { api } from "~/trpc/react";
 import { useFlexGrid } from "~/app/hooks/useFlexGrid";
 import { Button } from "~/app/components/ui/button";
 import { toast, Toaster } from "react-hot-toast";
 import { LoadingWrapper } from "~/app/components/wrapper/LoadingWrapper";
-
-const FlexGrid = dynamic(
-  () => import("~/app/components/FlexGrid").then((mod) => mod.FlexGrid),
-  {
-    ssr: false,
-    loading: () => <p>Loading...</p>,
-  },
-);
+import { type FlexGridColumn } from "~/app/types/FlexGridColumn";
+import { ClientFlexGrid } from "~/app/components/molecules/ClientFlexGrid";
 
 interface Customer {
-  id?: string;
+  id?: number;
   code: string;
   name: string;
   address?: string | null;
@@ -47,12 +40,22 @@ export default function Home() {
     },
   });
 
-  const columns = [
+  const columns: FlexGridColumn<Customer>[] = [
     { header: "コード", binding: "code", isRequired: true },
     { header: "名前", binding: "name", isRequired: true },
     { header: "住所", binding: "address", isRequired: false },
     { header: "電話番号", binding: "phoneNumber", isRequired: false },
-    { header: "メールアドレス", binding: "emailAddress", isRequired: false },
+    {
+      header: "メールアドレス",
+      binding: "emailAddress",
+      isRequired: false,
+      rule(_, value) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return value && !emailRegex.test(value)
+          ? "メールアドレスの形式が正しくありません。"
+          : "";
+      },
+    },
   ];
 
   const { register, getChanges, validate } = useFlexGrid(columns);
@@ -91,9 +94,7 @@ export default function Home() {
         </Button>
         <Button
           onClick={handleBulkUpsert}
-          disabled={
-            bulkUpsertMutation.isPending || !customers || customers.length === 0
-          }
+          disabled={bulkUpsertMutation.isPending}
         >
           {bulkUpsertMutation.isPending ? "処理中..." : "一括登録・更新"}
         </Button>
@@ -101,11 +102,8 @@ export default function Home() {
       <Toaster position="top-center" />
       <h1 className="mb-4 text-2xl font-bold">顧客一覧</h1>
       <LoadingWrapper isLoading={isFetching || bulkUpsertMutation.isPending}>
-        <FlexGrid items={customers ?? []} {...register()} />
+        <ClientFlexGrid<Customer> items={customers ?? []} {...register()} />
       </LoadingWrapper>
-      {customers && customers.length === 0 && (
-        <div className="mt-4 text-center">顧客データが見つかりません。</div>
-      )}
     </div>
   );
 }

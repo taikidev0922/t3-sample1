@@ -9,11 +9,8 @@ import { Selector } from "@mescius/wijmo.grid.selector";
 import { UndoStack } from "@mescius/wijmo.undo";
 import { FlexGridFilter } from "@mescius/wijmo.grid.filter";
 import { FlexGridXlsxConverter } from "@mescius/wijmo.grid.xlsx";
-
-type FlexGridColumn<T> = {
-  header: string;
-  binding: string;
-};
+import { useHotkeys } from "react-hotkeys-hook";
+import { type FlexGridColumn } from "../types/FlexGridColumn";
 
 export function useFlexGrid<T>(columns: FlexGridColumn<T>[]) {
   const [grid, setGrid] =
@@ -21,6 +18,24 @@ export function useFlexGrid<T>(columns: FlexGridColumn<T>[]) {
   const [selector, setSelector] = useState<Selector>();
   const [filter, setFilter] = useState<FlexGridFilter>();
   const [undoStack, setUndoStack] = useState<UndoStack>();
+
+  useHotkeys("ctrl+z", () => undo());
+  useHotkeys("ctrl+y", () => redo());
+  useHotkeys("alt+s", () => exportXlsx());
+  useHotkeys("alt+;", () => addRow());
+  useHotkeys("alt+d", (e) => {
+    e.preventDefault();
+    removeRow();
+  });
+  useHotkeys("alt+f", (e) => {
+    e.preventDefault();
+    clearFilter();
+  });
+  useHotkeys("alt+c", () => {
+    void (async () => {
+      await copyRow();
+    })();
+  });
 
   function init(_grid: IFlexGrid<T & { id?: string; isDelete?: boolean }>) {
     setGrid(_grid);
@@ -59,25 +74,32 @@ export function useFlexGrid<T>(columns: FlexGridColumn<T>[]) {
     });
   }
 
-  const getError = (item: T, propName: string | null): string | null => {
-    switch (propName) {
-      case "emailAddress":
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return item[propName as keyof T] &&
-          !emailRegex.test(item[propName as keyof T] as string)
-          ? "メールアドレスの形式が正しくありません。"
-          : "";
-      case null:
-        const errors: string[] = [];
-        for (const key in item) {
-          const err = getError(item, key);
-          if (err) errors.push(err);
-        }
-        return errors.length > 1
-          ? "この項目では " + errors.length + " 個のエラーがあります。"
-          : errors.length == 1
-            ? (errors[0] ?? null)
-            : null;
+  const getError = (
+    item: T & { id?: string; isDelete?: boolean },
+    propName: string | null,
+  ): string | null => {
+    const index = grid?.collectionView.items.indexOf(item) ?? 0;
+    const rowIndex = grid?.rows.getItemAt(index) ?? 0;
+    if (!grid?.rows[rowIndex]?.isSelected) {
+      return null;
+    }
+    if (columns.find((column) => column.binding === propName)?.rule) {
+      const error = columns
+        ?.find((column) => column.binding === propName)
+        ?.rule?.(item, item[propName as keyof T] as string);
+      return error ?? null;
+    }
+    if (propName === null) {
+      const errors: string[] = [];
+      for (const key in item) {
+        const err = getError(item, key);
+        if (err) errors.push(err);
+      }
+      return errors.length > 1
+        ? "この項目では " + errors.length + " 個のエラーがあります。"
+        : errors.length == 1
+          ? (errors[0] ?? null)
+          : null;
     }
     return null;
   };
@@ -87,13 +109,13 @@ export function useFlexGrid<T>(columns: FlexGridColumn<T>[]) {
     const items = getChanges();
     if (items) {
       return items.every((item) => {
-        columns.forEach((column) => {
+        return columns.every((column) => {
           const error = getError(item, column.binding);
           if (error) {
             return false;
           }
+          return true;
         });
-        return true;
       });
     }
     return true;
@@ -111,18 +133,22 @@ export function useFlexGrid<T>(columns: FlexGridColumn<T>[]) {
 
   function undo() {
     undoStack?.undo();
+    grid?.focus();
   }
 
   function redo() {
     undoStack?.redo();
+    grid?.focus();
   }
 
   function addRow() {
     grid?.editableCollectionView.addNew();
+    grid?.focus();
   }
 
   function clearFilter() {
     filter?.clear();
+    grid?.focus();
   }
 
   async function copyRow() {
@@ -135,6 +161,7 @@ export function useFlexGrid<T>(columns: FlexGridColumn<T>[]) {
       grid.select(grid?.collectionView.items.length - 1, grid.selection.col);
       grid.rows[grid.selection.row]!.isSelected = true;
     }
+    grid?.focus();
   }
 
   function removeRow() {
@@ -149,6 +176,7 @@ export function useFlexGrid<T>(columns: FlexGridColumn<T>[]) {
       grid?.editableCollectionView.remove(grid?.collectionView.currentItem);
     }
     grid?.endUpdate();
+    grid?.focus();
   }
 
   function exportXlsx() {
@@ -163,6 +191,7 @@ export function useFlexGrid<T>(columns: FlexGridColumn<T>[]) {
       },
       "FlexGrid.xlsx",
     );
+    grid?.focus();
   }
 
   function register() {

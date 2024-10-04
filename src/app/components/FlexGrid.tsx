@@ -8,11 +8,11 @@ import { CollectionView } from "@mescius/wijmo";
 import "@mescius/wijmo.cultures/wijmo.culture.ja";
 import { Plus, Minus, Undo2, Redo2, FilterX, Copy, FileX } from "lucide-react";
 import { type FlexGridColumn } from "../types/FlexGridColumn";
-import { Button } from "./ui/button";
+import { TooltipButton } from "~/app/components/molecules/TooltipButton";
 
 export interface FlexGridProps<T> {
   items: T[];
-  columns: FlexGridColumn[];
+  columns: FlexGridColumn<T>[];
   init: (grid: IFlexGrid) => void;
   addRow: () => void;
   removeRow: () => void;
@@ -89,7 +89,7 @@ export function FlexGrid<T>({
     trackChanges: true,
   });
 
-  const rowHeaders: FlexGridColumn[] = [
+  const rowHeaders: FlexGridColumn<T & { operation?: string }>[] = [
     {
       header: " ",
       binding: "operation",
@@ -98,7 +98,9 @@ export function FlexGrid<T>({
     },
   ];
 
-  const extendedColumns = rowHeaders.concat(columns);
+  const extendedColumns = rowHeaders.concat(
+    columns.map(({ rule, ...rest }) => rest),
+  );
 
   return (
     <div ref={containerRef} id="undoable-form">
@@ -109,27 +111,48 @@ export function FlexGrid<T>({
         style={{ height: `${gridHeight}px` }}
       ></WjFlexGrid>
       <div className="flex gap-2">
-        <Button onClick={undo} variant="outline" size="icon">
-          <Undo2 size={24} />
-        </Button>
-        <Button onClick={redo} variant="outline" size="icon">
-          <Redo2 size={24} />
-        </Button>
-        <Button onClick={addRow} variant="outline" size="icon">
-          <Plus size={24} />
-        </Button>
-        <Button onClick={removeRow} variant="outline" size="icon">
-          <Minus size={24} />
-        </Button>
-        <Button onClick={clearFilter} variant="outline" size="icon">
-          <FilterX size={24} />
-        </Button>
-        <Button onClick={copyRow} variant="outline" size="icon">
-          <Copy size={24} />
-        </Button>
-        <Button onClick={exportXlsx} variant="outline" size="icon">
-          <FileX size={24} />
-        </Button>
+        <TooltipButton
+          onClick={undo}
+          icon={<Undo2 size={24} />}
+          shortcut="Ctrl+Z"
+          label="元に戻す"
+        />
+        <TooltipButton
+          onClick={redo}
+          icon={<Redo2 size={24} />}
+          shortcut="Ctrl+Y"
+          label="やり直し"
+        />
+        <TooltipButton
+          onClick={addRow}
+          icon={<Plus size={24} />}
+          shortcut="Alt+;"
+          label="行追加"
+        />
+        <TooltipButton
+          onClick={removeRow}
+          icon={<Minus size={24} />}
+          shortcut="Alt+D"
+          label="行削除"
+        />
+        <TooltipButton
+          onClick={clearFilter}
+          icon={<FilterX size={24} />}
+          shortcut="Alt+F"
+          label="フィルタークリア"
+        />
+        <TooltipButton
+          onClick={copyRow}
+          icon={<Copy size={24} />}
+          shortcut="Alt+C"
+          label="行コピー"
+        />
+        <TooltipButton
+          onClick={exportXlsx}
+          icon={<FileX size={24} />}
+          shortcut="Alt+S"
+          label="Excelエクスポート"
+        />
       </div>
     </div>
   );

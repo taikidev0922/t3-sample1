@@ -21,12 +21,14 @@ const Navbar = () => {
         </Link>
         <div className="space-x-4">
           <Button variant="ghost" asChild>
-            <Link href="/dashboard">Dashboard</Link>
+            <Link href="/">Dashboard</Link>
           </Button>
           <Button variant="ghost" asChild>
             <Link href="/profile">Profile</Link>
           </Button>
-          <Button variant="secondary">Login</Button>
+          <Button variant="secondary" asChild>
+            <Link href="/login">Login</Link>
+          </Button>
         </div>
       </div>
     </nav>
@@ -38,10 +40,10 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${GeistSans.variable} font-sans`}>
-      <body className="min-h-screen bg-gray-100">
+      <body>
         <TRPCReactProvider>
           <Navbar />
-          <main className="container mx-auto mt-4 px-2">{children}</main>
+          <main>{children}</main>
         </TRPCReactProvider>
       </body>
     </html>
