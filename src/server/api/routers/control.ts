@@ -5,6 +5,7 @@ import { TRPCError } from "@trpc/server";
 // 制御マスタのスキーマ
 const controlSchema = z.object({
   id: z.number().optional(),
+  code: z.string(),
   name: z.string(),
 });
 
@@ -29,12 +30,49 @@ export const controlRouter = createTRPCRouter({
     return controls;
   }),
 
+  findDetailsByControlCode: publicProcedure
+    .input(z.object({ controlCode: z.string() }))
+    .query(async ({ ctx, input }) => {
+      try {
+        const control = await ctx.db.control.findFirst({
+          where: { code: input.controlCode },
+          include: { details: true },
+        });
+
+        if (!control) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "指定された制御コードのマスタが見つかりません。",
+          });
+        }
+
+        return {
+          control: {
+            id: control.id,
+            code: control.code,
+            name: control.name,
+          },
+          details: control.details,
+        };
+      } catch (error) {
+        console.error("Find details by control code error:", error);
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "制御マスタ詳細の取得中にエラーが発生しました。",
+        });
+      }
+    }),
+
   createControl: publicProcedure
     .input(controlSchema)
     .mutation(async ({ ctx, input }) => {
       try {
         const newControl = await ctx.db.control.create({
           data: {
+            code: input.code,
             name: input.name,
           },
         });

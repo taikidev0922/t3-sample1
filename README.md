@@ -1,6 +1,86 @@
 # データベース変更ガイド
 
-[前述の内容をここに含める]
+このプロジェクトでは、Prismaを使用してデータベーススキーマを管理しています。以下は、データベース構造を変更する際の手順です。
+
+## 1. Prismaスキーマの変更
+
+1. `prisma/schema.prisma` ファイルを開きます。
+2. 必要な変更を加えます（新しいモデルの追加、既存のモデルの変更など）。
+
+例：新しい制御マスタとその詳細を追加する場合
+
+```prisma
+model Control {
+    id          Int             @id @default(autoincrement())
+    name        String          @unique
+    details     ControlDetail[]
+    createdAt   DateTime        @default(now())
+    updatedAt   DateTime        @updatedAt
+
+    @@index([name])
+}
+
+model ControlDetail {
+    id        Int      @id @default(autoincrement())
+    code      String
+    name      String
+    controlId Int
+    control   Control  @relation(fields: [controlId], references: [id])
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@unique([controlId, code])
+    @@index([code])
+    @@index([name])
+}
+```
+
+## 2. マイグレーションの作成
+
+変更を適用するためのマイグレーションを作成します：
+
+```bash
+npx prisma migrate dev --name add_control_models
+```
+
+このコマンドは以下の操作を行います：
+
+- 新しいマイグレーションファイルを作成
+- そのマイグレーションをデータベースに適用
+- Prisma Clientを再生成
+
+## 3. マイグレーションの確認
+
+生成されたマイグレーションファイル（`prisma/migrations/[timestamp]_add_control_models/migration.sql`）を確認し、必要に応じて編集します。
+
+## 4. Prisma Clientの更新
+
+マイグレーション後、Prisma Clientを手動で更新する必要がある場合：
+
+```bash
+npx prisma generate
+```
+
+## 5. 変更のコミットとプッシュ
+
+1. 変更したPrismaスキーマファイルをコミットします。
+2. 新しく作成されたマイグレーションファイルもコミットします。
+3. 変更をリモートリポジトリにプッシュします。
+
+## 注意点
+
+- 本番環境でのマイグレーション実行は慎重に行ってください。
+- 大規模な変更の場合は、事前にステージング環境でテストすることを推奨します。
+- チーム内で変更を共有し、他の開発者に通知してください。
+
+## トラブルシューティング
+
+マイグレーションに問題がある場合：
+
+1. `npx prisma migrate reset` を使用してデータベースをリセットできます（開発環境のみ）。
+2. マイグレーションの履歴に問題がある場合は、`prisma/migrations` ディレクトリ内のファイルを確認・編集してください。
+
+詳細については、[Prisma公式ドキュメント](https://www.prisma.io/docs/concepts/components/prisma-migrate)を参照してください。
 
 ## ローカルデータベースの確認
 

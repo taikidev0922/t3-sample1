@@ -21,6 +21,7 @@ export const CreateControlForm: React.FC<CreateControlFormProps> = ({
   onSuccess,
 }) => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newControlCode, setNewControlCode] = useState("");
   const [newControlName, setNewControlName] = useState("");
 
   const createControlMutation = api.control.createControl.useMutation({
@@ -28,6 +29,7 @@ export const CreateControlForm: React.FC<CreateControlFormProps> = ({
       toast.success("新しい制御マスタが作成されました。");
       onSuccess();
       setIsDialogOpen(false);
+      setNewControlCode("");
       setNewControlName("");
     },
     onError: (error) => {
@@ -36,8 +38,13 @@ export const CreateControlForm: React.FC<CreateControlFormProps> = ({
   });
 
   const handleCreateControl = () => {
-    if (newControlName.trim()) {
-      createControlMutation.mutate({ name: newControlName.trim() });
+    if (newControlCode.trim() && newControlName.trim()) {
+      createControlMutation.mutate({
+        code: newControlCode.trim(),
+        name: newControlName.trim(),
+      });
+    } else {
+      toast.error("コードと名称を入力してください。");
     }
   };
 
@@ -50,7 +57,15 @@ export const CreateControlForm: React.FC<CreateControlFormProps> = ({
         <DialogHeader>
           <DialogTitle>新規制御マスタの作成</DialogTitle>
         </DialogHeader>
-        <div className="py-4">
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="code">コード</Label>
+            <Input
+              id="code"
+              value={newControlCode}
+              onChange={(e) => setNewControlCode(e.target.value)}
+            />
+          </div>
           <div className="space-y-2">
             <Label htmlFor="name">名称</Label>
             <Input

@@ -7,6 +7,7 @@ const customerSchema = z.object({
   id: z.string().optional(), // idは文字列またはundefined
   code: z.string(),
   name: z.string(),
+  prefectureCd: z.string().nullable().optional(),
   address: z.string().nullable().optional(),
   phoneNumber: z.string().nullable().optional(),
   emailAddress: z.string().email().nullable().optional(),
@@ -44,6 +45,7 @@ export const customerRouter = createTRPCRouter({
                       code: customer.code,
                       name: customer.name,
                       address: customer.address,
+                      prefectureCd: customer.prefectureCd,
                       phoneNumber: customer.phoneNumber,
                       emailAddress: customer.emailAddress,
                     },
@@ -56,6 +58,7 @@ export const customerRouter = createTRPCRouter({
                     code: customer.code,
                     name: customer.name,
                     address: customer.address,
+                    prefectureCd: customer.prefectureCd,
                     phoneNumber: customer.phoneNumber,
                     emailAddress: customer.emailAddress,
                   },

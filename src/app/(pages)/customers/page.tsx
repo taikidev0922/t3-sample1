@@ -14,6 +14,7 @@ interface Customer {
   name: string;
   address?: string | null;
   phoneNumber?: string | null;
+  prefectureCd?: string | null;
   emailAddress?: string | null;
 }
 
@@ -30,6 +31,13 @@ export default function Home() {
     refetchOnWindowFocus: false,
   });
 
+  const { data: prefectures } = api.control.findDetailsByControlCode.useQuery(
+    { controlCode: "prefecture" },
+    {
+      refetchOnWindowFocus: true,
+    },
+  );
+
   const bulkUpsertMutation = api.customer.bulkUpsert.useMutation({
     onSuccess: () => {
       toast.success("一括登録が成功しました。");
@@ -42,7 +50,17 @@ export default function Home() {
 
   const columns: FlexGridColumn<Customer>[] = [
     { header: "コード", binding: "code", isRequired: true },
-    { header: "名前", binding: "name", isRequired: true },
+    { header: "名称", binding: "name", isRequired: true },
+    {
+      header: "都道府県",
+      binding: "prefectureCd",
+      isRequired: false,
+      dataMap: {
+        items: prefectures?.details ?? [],
+        selectedValuePath: "code",
+        displayMemberPath: "name",
+      },
+    },
     { header: "住所", binding: "address", isRequired: false },
     { header: "電話番号", binding: "phoneNumber", isRequired: false },
     {

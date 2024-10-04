@@ -3,7 +3,7 @@
 import React, { useRef, useEffect, useState } from "react";
 import "@mescius/wijmo.styles/wijmo.css";
 import { FlexGrid as WjFlexGrid } from "@mescius/wijmo.react.grid";
-import { type FlexGrid as IFlexGrid } from "@mescius/wijmo.grid";
+import { type FlexGrid as IFlexGrid, DataMap } from "@mescius/wijmo.grid";
 import { CollectionView } from "@mescius/wijmo";
 import "@mescius/wijmo.cultures/wijmo.culture.ja";
 import { Plus, Minus, Undo2, Redo2, FilterX, Copy, FileX } from "lucide-react";
@@ -99,7 +99,19 @@ export function FlexGrid<T>({
   ];
 
   const extendedColumns = rowHeaders.concat(
-    columns.map(({ rule, ...rest }) => rest),
+    columns.map(({ rule, dataMap, ...rest }) => {
+      if (dataMap) {
+        return {
+          ...rest,
+          dataMap: new DataMap(
+            dataMap.items,
+            dataMap.selectedValuePath,
+            dataMap.displayMemberPath,
+          ),
+        };
+      }
+      return rest;
+    }) as FlexGridColumn<T>[],
   );
 
   return (
